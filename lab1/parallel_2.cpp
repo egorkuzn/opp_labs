@@ -193,10 +193,10 @@ int main(int argc, char** argv) {
        if ((currentTime - startTime) > timeLimit) 
            timeOut = true; 
 
-       MPI_Bcast(&countIt, 1, MPI_INT, 0, MPI_COMM_WORLD); 
+       MPI_Bcast(&countIt, 1,    MPI_INT, 0, MPI_COMM_WORLD); 
        MPI_Bcast(&res,     1, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
        MPI_Bcast(&lastres, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
-       MPI_Bcast(&τ,     1, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
+       MPI_Bcast(&τ,       1, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
        MPI_Bcast(&saveRes, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
    } 
 

@@ -54,7 +54,7 @@ void generate_matrix(double* matrix) {
        for(int j = i; j < N; j++){ 
            matrix[i*N + j] = rand_double(); 
            if(i == j)
-               matrix[i*N + j] = fabs(matrix[i*N + j]) + 400.0;   
+               matrix[i*N + j] = fabs(matrix[i*N + j]) + 200.0;   
        } 
    } 
 }  
@@ -114,6 +114,8 @@ int main(int argc, char** argv) {
    double lastres = 1; bool timeOut = false; int countIt = 1;
    double start = 0, currentTime = 0, end = 0; 
 
+   start = MPI_Wtime();
+
    for (long i = 0; i < N; ++i) {
        prevX[i] = drand(1,5); 
        nextX[i] = drand(1,5); 
@@ -134,9 +136,7 @@ int main(int argc, char** argv) {
    MPI_Bcast(&saveRes, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
 
    MPI_Scatter(A, N * N / size_Of_Cluster, MPI_DOUBLE, ABuf, 
-               N * N / size_Of_Cluster, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
-   
-   start = MPI_Wtime();
+               N * N / size_Of_Cluster, MPI_DOUBLE, 0, MPI_COMM_WORLD);    
 
    while (res > ε * ε && !timeOut){ 
        if(process_Rank == 0)
@@ -160,15 +160,11 @@ int main(int argc, char** argv) {
            res = normAxb / normb; 
            countIt++; 
 
-           if ((countIt > 100000 && lastres > res) || res == INFINITY)
-               if (τ < 0) { 
+           if ((countIt > 100000 && lastres > res) || res == INFINITY) { 
                    printf("Does not converge\n"); 
                    saveRes = res; 
                    res = 0; 
-               } else{ 
-                   τ *= -1; 
-                   countIt = 0; 
-               } 
+            } 
 
            lastres = res; 
        } 
