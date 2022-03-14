@@ -1,7 +1,0 @@
-[
-{
-  "directory": "/home/egorkuzn/egorkuzn/vscode_prjcts/opp_labs/lab1/build",
-  "command": "/bin/x86_64-linux-gnu-g++-11    -g   -o CMakeFiles/oop_lab1.dir/consistent.cpp.o -c /home/egorkuzn/egorkuzn/vscode_prjcts/opp_labs/lab1/consistent.cpp",
-  "file": "/home/egorkuzn/egorkuzn/vscode_prjcts/opp_labs/lab1/consistent.cpp"
-}
-]
