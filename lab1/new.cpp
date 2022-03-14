@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstring>
 #include <cmath>
 #include <mpi/mpi.h>
 
@@ -52,6 +53,14 @@ void generateMatrix(double* matrix) {
    } 
 }  
 
+void final_out(){
+
+}
+
+void final_free(){
+    
+}
+
 int main(int argc, char** argv){
     srand(time(0));
     int processRank, sizeOfCluster;
@@ -61,7 +70,7 @@ int main(int argc, char** argv){
 
     bool timeOut = false;
     int countIt = 0;
-    double start = 0, end =0, norm_Axn_minus_b, pieceOfNorm, εSquard_mult_normb, last_norm;
+    double start = 0, end =0, currentTime, norm_Axn_minus_b, pieceOfNorm, εSquard_mult_normb, last_norm;
     double* A = (double*)malloc(N * N * sizeof(double));
     double* ABuf = (double*)malloc(N * N / sizeOfCluster * sizeof(double));
     double* X = (double*)malloc(N * sizeof(double));
@@ -109,6 +118,7 @@ Example: sizeOfCluster == 4:
 
     while (norm_Axn_minus_b > εSquard_mult_normb && !timeOut){
         // MPI_Scatter(); - logically. But why use that if we don't gather xn 
+        norm_Axn_minus_b = 0;
         mul(ABuf, XPrevBuf, piece, N / sizeOfCluster); // mul for 1 piece calculating
         MPI_Allreduce(piece, final_vect_res, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // for final vect res taking 
         MPI_Scatter(final_vect_res, N / sizeOfCluster, MPI_DOUBLE, final_vect_resBuf,
@@ -129,8 +139,15 @@ Example: sizeOfCluster == 4:
             printf("Does not converge\n"); 
             timeOut = true; 
         }
+
+        currentTime = MPI_Wtime();
+
+        if((currentTime - start) > timeLimit)
+            timeOut = true;
         
-        
+        memset(XBuf, 0, N / sizeOfCluster * sizeof(double));
+        memset(final_vect_res, 0, N * sizeof(double));
+        last_norm = norm_Axn_minus_b;
 
         MPI_Barrier(MPI_COMM_WORLD);
     }
