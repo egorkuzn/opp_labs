@@ -61,19 +61,18 @@ int main(int argc, char** argv){
 
     bool timeOut = false;
     int countIt = 0;
-    double normDivision, lastNormDivision, savedNormDivision, normVector, normTotal, currentTime, startTime, normb;
-    double  *array = (double*)malloc(sizeOfCluster * sizeof(double));
-    double *vector = (double*)malloc(N / sizeOfCluster * sizeof(double)), // already have cut
-            *xPrev = (double*)malloc(N / sizeOfCluster * sizeof(double)), // already have cut
-            *xNext = (double*)malloc(N / sizeOfCluster * sizeof(double)),
-                *A = (double*)malloc(N * N * sizeof(double)),
-             *ABuf = (double*)malloc(N * N / sizeOfCluster * sizeof(double));
+    double start = 0, end =0, norm_Axn_minus_b, pieceOfNorm, εSquard_mult_normb, last_norm;
+    double* A = (double*)malloc(N * N * sizeof(double));
+    double* ABuf = (double*)malloc(N * N / sizeOfCluster * sizeof(double));
+    double* X = (double*)malloc(N * sizeof(double));
+    double* XBuf = (double*)malloc(N / sizeOfCluster * sizeof(double));
+    double* final_vect_res = (double*)malloc(N * sizeof(double));
+    double* final_vect_resBuf = (double*)malloc(N / sizeOfCluster * sizeof(double));
+    double* piece = (double*)malloc(N * sizeof(double));
+    double* b = (double*)malloc(N * sizeof(double));
+    double* bBuf = (double*)malloc(N / sizeOfCluster* sizeof(double));
+    double* Axn_minus_b_buffer = (double*)malloc(N / sizeOfCluster * sizeof(double));
 
-    start = MPI_Wtime();
-
-    if(processRank == 0){
-        generateMatrix(A);              
-    }  
 
 /* 
 Example: sizeOfCluster == 4:
@@ -89,8 +88,8 @@ Example: sizeOfCluster == 4:
                           <---------->
         +-------+   +-+     +-+                    +-+                        +---------+
         | | | | |   |A|     | |                    | |                        |         |
-        | | | | |   |B|     | |   +-+              | |   +-+    AllReduce()   |final    |
-        |1|2|3|4| X |C|   = |1| X |A|   +  ... +   |4| X |D|   =============  |vect res |
+        | | | | |   |B|     | |   +-+              | |   +-+    AllReduce()   |final_   |
+        |1|2|3|4| X |C|   = |1| X |A|   +  ... +   |4| X |D|   =============  |vect_res |
         | | | | |   |D|     | |   +-+              | |   +-+                  |         |
         +-------+   +-+     +-+                    +-+                        +---------+
 
@@ -101,25 +100,28 @@ Example: sizeOfCluster == 4:
 
     MPI_Scatter(A, N * N / sizeOfCluster, MPI_DOUBLE, ABuf, 
                    N * N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Scatter();
+    MPI_Scatter(X, N / sizeOfCluster, MPI_DOUBLE, XBuf,
+                   N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     while (norm_Axn_minus_b > εSquard_mult_normb && !timeOut){
         // MPI_Scatter(); - logically. But why use that if we don't gather xn 
-        mul(); // mul for 1 piece calculating
-        MPI_Allreduce(); // for final vect res taking 
-        MPI_Scatter(); // final vect res cutting
-        MPI_Scatter(); // scattering of b vect
-        sub(); // parallel diff calculating for [A*xn - b] (we getting pieces of that) 
+        mul(ABuf, XBuf, piece, N / sizeOfCluster); // mul for 1 piece calculating
+        MPI_Allreduce(piece, final_vect_res, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // for final vect res taking 
+        MPI_Scatter(final_vect_res, N / sizeOfCluster, MPI_DOUBLE, final_vect_resBuf,
+                                    N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD); // final vect res cutting
+        MPI_Scatter(b, N / sizeOfCluster, MPI_DOUBLE, bBuf,
+                       N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD); // scattering of b vect
+        sub(final_vect_resBuf, bBuf, Axn_minus_b_buffer, N / sizeOfCluster); // parallel diff calculating for [A*xn - b] (we getting pieces of that) 
         /*~~~~~~~~~~~~~~~~~~~ ACCENT PAUSE FOR NORM CALCULATIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-        EuclideanNorm(); // taking norm of each pieces
-        MPI_Allreduce(); // sum by each piece => norm_Axn_minus_b 
+        pieceOfNorm = EuclideanNorm(Axn_minus_b_buffer); // taking norm of piece
+        MPI_Allreduce(&pieceOfNorm, &norm_Axn_minus_b, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // sum by each piece => norm_Axn_minus_b 
         /*~~~~~~~~~~~~~~~~~~~~~~ CONTINUE TO CALCULATE X_{n + 1} ~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
         // since final vect res was cut we make it work parallel
         scalMulTau(); // final vect res scalar multiplication
         sub(); // [xn - τ * (A*xn - b)] -- xn was cut, τ * (final vect res) - also was cut
         /*~~~~~~~~~~~~~~~~~~~~ CONGRATULATIONS - WE COUNTED X_{n + 1} ~~~~~~~~~~~~~~~~~~~~~~*/
         /*vvvvvvvvvvvvvvvvvvvvvvvv CHECKPOINT vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/      
-        if ((process_Rank == 0) && ( (++countIt > 100000 && last_norm > norm_Axn_minus_b) || norm_Axn_minus_b == INFINITY) ){ 
+        if ((processRank == 0) && ( (++countIt > 100000 && last_norm > norm_Axn_minus_b) || norm_Axn_minus_b == INFINITY) ){ 
             printf("Does not converge\n"); 
             timeOut = true; 
         }
