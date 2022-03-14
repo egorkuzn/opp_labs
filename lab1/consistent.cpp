@@ -75,7 +75,7 @@ void generate_matrix(double* matrix) {
             matrix[i*N + j] = rand_double();
 
             if(i == j)
-                matrix[i*N + j] = fabs(matrix[i*N + j]) + 400.0;            
+                matrix[i*N + j] = fabs(matrix[i*N + j]) + 400.0;            // make smaller 
         }
     }
 }
@@ -109,6 +109,7 @@ int main(int argc, char** argv) {
     double lastres = 0; bool timeOut = false; int countIt = 1;
     clock_t start, currentTime, end;
 
+    start = clock();
     for(long i = 0; i < N; i++) {
         prevX[i] = drand(1, 5);
         b[i] = drand(1, 5);
@@ -125,7 +126,6 @@ int main(int argc, char** argv) {
     saveRes = normAxb / normb;
     res = normAxb / normb;
     lastres = res;    
-    start = clock();
 
     while (res > ε * ε && !timeOut) {
         for (long i = 0; i < N; i++)
@@ -139,16 +139,11 @@ int main(int argc, char** argv) {
         res = normAxb / normb;
         countIt++;
 
-        if ((countIt > 100000 && lastres > res) || res == INFINITY)
-            if (τ < 0){
+        if ((countIt > 100000 && lastres < res) || res == INFINITY){
                 printf("Does not converge\n");
                 free_block(Ax, nextX, prevX, b, A);
                 return 0;
-            } else{
-                τ *= -1;
-                countIt = 0;
-                res = saveRes;
-            }
+        } 
         
 
         lastres = res;
