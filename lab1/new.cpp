@@ -63,15 +63,13 @@ void final_out(bool timeOut, double res, int countIt, double end, double start){
                             "error coefficient was %lf\n", timeLimit, res); 
 }
 
-void final_free(double* A, double* ABuf, double* X, double* XBuf, double* XPrev,
-                double* XPrevBuf, double* final_vect_res, double* final_vect_resBuf,
+void final_free(double* A, double* ABuf, double* X, double* XBuf, 
+                double* final_vect_res, double* final_vect_resBuf,
                 double* piece, double* b, double* bBuf, double* Axn_minus_b_buffer    ){
     free(A);
     free(ABuf);
     free(X);
     free(XBuf);
-    free(XPrev);
-    free(XPrevBuf);
     free(final_vect_res);
     free(final_vect_resBuf);
     free(piece);
@@ -89,8 +87,8 @@ int main(int argc, char** argv){
 
     bool timeOut = false;
     int countIt = 0;
-    double start = 0, end =0, currentTime, norm_Axn_minus_b, pieceOfNorm,
-                                                εSquard_mult_normb, last_norm, normb;
+    double start = 0, end = 0, currentTime = 0, norm_Axn_minus_b, pieceOfNorm,
+                                     εSquard_mult_normb, last_norm, normb, normbBuf;
     double* A = (double*)malloc(N * N * sizeof(double));
     double* ABuf = (double*)malloc(N * N / sizeOfCluster * sizeof(double));
     double* X = (double*)malloc(N * sizeof(double));
@@ -102,7 +100,8 @@ int main(int argc, char** argv){
     double* bBuf = (double*)malloc(N / sizeOfCluster* sizeof(double));
     double* Axn_minus_b_buffer = (double*)malloc(N / sizeOfCluster * sizeof(double));
 
-    initBlock(A, );
+    if(processRank == 0)
+        initBlock(A, X, b);
 /* 
 Example: sizeOfCluster == 4:
 
@@ -124,14 +123,19 @@ Example: sizeOfCluster == 4:
 
         so, other operations, like sum, sub, scalmul - independent from order. So final result just summ 
         of gotten from each part.
-        Keeping 
  */ 
+
+    start = MPI_Wtime();
+
+    MPI_Scatter(b, N / sizeOfCluster, MPI_DOUBLE, bBuf,
+                   N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    normbBuf = EuclideanNorm(bBuf, N / sizeOfCluster) * εSquard;
+    MPI_Allreduce(&normbBuf, &εSquard_mult_normb, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
 
     MPI_Scatter(A, N * N / sizeOfCluster, MPI_DOUBLE, ABuf, 
                    N * N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatter(X, N / sizeOfCluster, MPI_DOUBLE, XBuf,
-                   N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Scatter(b, N / sizeOfCluster, MPI_DOUBLE, bBuf,
                    N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     while (last_norm > εSquard_mult_normb && !timeOut){
@@ -140,8 +144,6 @@ Example: sizeOfCluster == 4:
         MPI_Allreduce(piece, final_vect_res, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // for final vect res taking 
         MPI_Scatter(final_vect_res, N / sizeOfCluster, MPI_DOUBLE, final_vect_resBuf,
                                     N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD); // final vect res cutting
-        MPI_Scatter(b, N / sizeOfCluster, MPI_DOUBLE, bBuf,
-                       N / sizeOfCluster, MPI_DOUBLE, 0, MPI_COMM_WORLD); // scattering of b vect
         sub(final_vect_resBuf, bBuf, Axn_minus_b_buffer, N / sizeOfCluster); // parallel diff calculating for [A*xn - b] (we getting pieces of that) 
         /*~~~~~~~~~~~~~~~~~~~ ACCENT PAUSE FOR NORM CALCULATIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
         pieceOfNorm = EuclideanNorm(Axn_minus_b_buffer, N / sizeOfCluster); // taking norm of piece
@@ -180,7 +182,7 @@ Example: sizeOfCluster == 4:
 
     final_out(timeOut, norm_Axn_minus_b / normb, countIt, end, start);  // outputing of the statistic log
     final_free(A, ABuf, X, XBuf, final_vect_res,
-                 final_vect_resBuf, piece, b, bBuf, Axn_minus_b_buffer); // memory free */
+                 final_vect_resBuf, piece, b, bBuf, Axn_minus_b_buffer); // memory free
     MPI_Finalize(); 
     return 0;
 }
