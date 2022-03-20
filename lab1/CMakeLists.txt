@@ -4,7 +4,7 @@ project(oop_lab1 VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
-add_executable(oop_lab1 consistent.cpp)
+add_executable(oop_lab1 consistent.c)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
