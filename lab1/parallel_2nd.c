@@ -211,4 +211,8 @@ Example: sizeOfCluster == 4:
                piece, bBuf, Axn_minus_b_buffer);
     MPI_Finalize(); 
     return 0;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> af1b601513f20eb7f6dd0e73aabf1a65dfe0a7da
