@@ -61,6 +61,11 @@ void generateMatrix(double* matrix) {
     }
 }
 
+void generateVector(double* vector){
+    for(long i = 0; i < N; ++i)
+        vector[i] = drand(1,5);
+}
+
 void final_out(bool timeOut, double res, int countIt, clock_t end, clock_t start){
     if (!timeOut){
         printf("%ld*%ld matrix error coefficient is %lf, iterations: %d\n", N, N, res , countIt);
@@ -76,6 +81,12 @@ void final_free(double* Ax, double* X, double* b, double* A){
     free(A);
 }
 
+void initBlock(double* A, double* X, double* b){
+    generateMatrix(A);
+    generateVector(X);
+    generateVector(b);
+}
+
 int main(int argc, char** argv) {
     srand(time(0));
 
@@ -89,13 +100,9 @@ int main(int argc, char** argv) {
     clock_t start, currentTime, end;
     double normAxb = 0, normb = 0, εSquart_mult_normb = 0, last_norm = INFINITY;
 
+    initBlock(A, X, b);  
+      
     start = clock();
-    for(long i = 0; i < N; i++) {
-        X[i] = drand(1, 5);
-        b[i] = drand(1, 5);
-    }
-
-    generateMatrix(A);
     normAxb = EuclideanNorm(Ax); // ||A*xn - b||
     normb = EuclideanNorm(b);  
 
