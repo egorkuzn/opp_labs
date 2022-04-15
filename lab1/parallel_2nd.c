@@ -162,10 +162,10 @@ Example: sizeOfCluster == 4:
 
     do {
         mul(ABuf, XBuf, piece, fixedCutMatrixSize); // mul for 1 piece calculating
-        MPI_Reduce_scatter(piece, final_vect_resBuf, recvcounts, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // for final vect res taking
-        // MPI_Allreduce(piece, final_vect_res, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // for final vect res taking         
-        // MPI_Scatter(final_vect_res, fixedCutVectorSize, MPI_DOUBLE, final_vect_resBuf,
-        //                             fixedCutVectorSize, MPI_DOUBLE, 0, MPI_COMM_WORLD); // final vect res cutting
+        // MPI_Reduce_scatter(piece, final_vect_resBuf, recvcounts, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // for final vect res taking
+        MPI_Allreduce(piece, final_vect_res, N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // for final vect res taking         
+        MPI_Scatter(final_vect_res, fixedCutVectorSize, MPI_DOUBLE, final_vect_resBuf,
+                                    fixedCutVectorSize, MPI_DOUBLE, 0, MPI_COMM_WORLD); // final vect res cutting
                                     
         sub(final_vect_resBuf, bBuf, Axn_minus_b_buffer, fixedCutVectorSize); // parallel diff calculating for [A*xn - b] (we getting pieces of that) 
         /*~~~~~~~~~~~~~~~~~~~ ACCENT PAUSE FOR NORM CALCULATIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~*/

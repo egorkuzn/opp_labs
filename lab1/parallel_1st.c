@@ -33,10 +33,10 @@ void sum(const double* from, const double* what, double* result, const int size)
 } 
 
 void mul(double* matrix, double* vector, double* result, const int size) { 
-    memset(result, 0, N * sizeof(double));
+    memset(result, 0, size * sizeof(double));
 
     for(int i = 0; i < N; ++i)
-        for(int j = 0; j < size / N; ++j)
+        for(int j = 0; j < size; ++j)
             result[j] += matrix[i * N + j] * vector[i];  
 }
 
@@ -83,10 +83,11 @@ void final_out(bool timeOut, double res, int countIt, double end, double start){
                             "error coefficient was %lf\n", timeLimit, res); 
 }
 
-void final_free(double* A, double* X, double* b,
+void final_free(double* A, double* X, double* XBuf, double* b,
                 double* ABuf, double* piece, double* Axn_minus_b_buffer){
     free(A);
     free(X);
+    free(XBuf);
     free(b);                
     free(ABuf);
     free(piece);
@@ -113,6 +114,7 @@ int main(int argc, char** argv){
     double* A = (double*)malloc(N * N * sizeof(double));
     double* ABuf = (double*)malloc(fixedCutMatrixSize * sizeof(double));
     double* X = (double*)malloc(N * sizeof(double));
+    double* XBuf = (double*)malloc(fixedCutVectorSize * sizeof(double)); 
     double* piece = (double*)malloc(fixedCutVectorSize * sizeof(double));
     double* b = (double*)malloc(N * sizeof(double));
     double* Axn_minus_b_buffer = (double*)malloc(fixedCutVectorSize * sizeof(double));
@@ -152,8 +154,7 @@ Example: sizeOfCluster == 4:
     int data_idx = N * processRank / sizeOfCluster;
 
     do {
-        mul(ABuf, X, piece, fixedCutMatrixSize); // mul for 1 piece calculating
-        //sum(piece, final_vect_res, final_vect_res, N); // for final vect res taking              
+        mul(ABuf, X, piece, fixedCutVectorSize); // mul for 1 piece calculating
         sub(piece, &b[data_idx], Axn_minus_b_buffer, fixedCutVectorSize); // parallel diff calculating for [A*xn - b] (we getting pieces of that) 
         /*~~~~~~~~~~~~~~~~~~~ ACCENT PAUSE FOR NORM CALCULATIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
         pieceOfNorm = EuclideanNorm(Axn_minus_b_buffer, fixedCutVectorSize); // taking norm of piece
@@ -163,12 +164,14 @@ Example: sizeOfCluster == 4:
         scalMulTau(Axn_minus_b_buffer, fixedCutVectorSize); // final vect res scalar multiplication
         sub(&X[data_idx], Axn_minus_b_buffer, &X[data_idx], fixedCutVectorSize); // [xn - τ * (A*xn - b)] -- xn was cut, τ * (final vect res) - also was cut
         memcpy(XBuf, &X[data_idx], fixedCutVectorSize);
+
         MPI_Allgather(XBuf, fixedCutVectorSize, MPI_DOUBLE, X,
                             fixedCutVectorSize, MPI_DOUBLE, MPI_COMM_WORLD); // gathering of Xn to X
 
         /*~~~~~~~~~~~~~~~~~~~~ CONGRATULATIONS - WE COUNTED X_{n + 1} ~~~~~~~~~~~~~~~~~~~~~~*/
         /*vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv CHECKPOINT vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/ 
         ++countIt;
+        
         if ((countIt > 100000 && last_norm > norm_Axn_minus_b) 
                                             ||  (norm_Axn_minus_b == INFINITY)){ 
             printf("Does not converge\n"); 
@@ -182,7 +185,7 @@ Example: sizeOfCluster == 4:
 
         if((currentTime - start) > timeLimit)
             timeOut = true;  
-    } while (countIt < 605 && !timeOut);
+    } while (countIt < 605 && (norm_Axn_minus_b > εSquard) && !timeOut);
 
     end = MPI_Wtime();
 
@@ -190,8 +193,7 @@ Example: sizeOfCluster == 4:
         final_out(timeOut, ε, countIt, end, start);  // outputing of the statistic log
     }
     
-    final_free(A, X, b, ABuf,
-               piece, Axn_minus_b_buffer);
+    final_free(A, X, XBuf, b, ABuf, piece, Axn_minus_b_buffer);
     MPI_Finalize(); 
     return 0;
 }
