@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <omp.h>
 
-const int N = 3600;
+const int N = 4800;
 const double e = 1e-5;
 float t = 1e-4;
 const double timeLimit = 600.0;
@@ -97,30 +97,32 @@ int main(int argc, char** argv) {
     int i, j;
 
     start = omp_get_wtime();
-    #pragma omp shared(default) private(countIt, i, j) parallel
+    int iterations_count = countIt;
+    #pragma omp parallel private(countIt, i, j)
     {
         do {    
-            #pragma omp single
-            memset(Ax, 0, N * sizeof(double));
             //mul(A, X, Ax); 
-            #pragma omp for schedule(dynamic) 
-            for(i = 0; i < N; ++i)
+            #pragma omp for private(j)
+            for(i = 0; i < N; ++i){
+                Ax[i] = 0;
                 for(j = 0; j < N; ++j)
-                    Ax[j] += A[i * N + j] * X[i];         
+                    Ax[i] += A[i * N + j] * X[j];  
+            }
             //sub(Ax, b, Ax); //A*xn - b
-            #pragma omp for schedule(static) 
+            #pragma omp for 
             for (i = 0; i < N; ++i)
                 Ax[i] -= b[i]; 
             //normAxb = EuclideanNorm(Ax); // ||A*xn - b||
             #pragma omp atomic write
             normAxb = 0;
             ++countIt;
-            #pragma omp shared(normAxb) for reduction(+: normAxb) schedule(dynamic)
+            iterations_count = countIt;
+            #pragma omp for reduction(+: normAxb)
             for (i = 0; i < N; ++i)
                 normAxb += Ax[i] * Ax[i];  
             //scalMulTau(Ax); // TAU*(A*xn - b)
             //sub(X, Ax, X); // xn - TAU * (A*xn - b)
-            #pragma omp for schedule(static, OMP_NUM_THREADS)
+            #pragma omp for
             for (i = 0; i < N; ++i)
                 X[i] -= Ax[i] * t;   
 
@@ -143,7 +145,7 @@ int main(int argc, char** argv) {
     }
     end = omp_get_wtime();
 
-    final_out(doesNotCoverage, timeOut, e, countIt, end, start);
+    final_out(doesNotCoverage, timeOut, e, iterations_count, end, start);
 
     final_free(Ax, X, b, A);
     return 0;

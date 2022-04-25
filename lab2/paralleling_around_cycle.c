@@ -7,40 +7,40 @@
 #include <stdbool.h>
 #include <omp.h>
 
-const long int N = 3600;
+const long int N = 4800;
 const double e = 1e-5;
 float t = 1e-4;
 const double timeLimit = 600;
 short OMP_NUM_THREADS = 1;
 
- double EuclideanNorm(const double* vector){
+double EuclideanNorm(const double* vector){
     double norm = 0;
 
-    #pragma omp default(shared) parallel for reduction(+: norm) schedule(dynamic)
+    #pragma omp parallel for reduction(+: norm)
     for (int i = 0; i < N; ++i)
         norm += vector[i] * vector[i];
 
     return norm;
 }
 
- void sub(const double* from, const double* what, double* result){
-    #pragma omp default(shared) parallel for schedule(static)
+void sub(const double* from, const double* what, double* result){
+    #pragma omp parallel for
     for (int i = 0; i < N; ++i)
         result[i] = from[i] - what[i];   
     
 }
 
- void mul(double* matrix, double* vector, double* result) {
-    memset(result, 0, N * sizeof(double));
-
-    #pragma omp default(shared) parallel for schedule(dynamic)
-        for(int i = 0; i < N; ++i)
-            for(int j = 0; j < N; ++j)
-                result[j] += matrix[i * N + j] * vector[i]; 
+void mul(double* matrix, double* vector, double* result) {
+    #pragma omp parallel for
+    for(int i = 0; i < N; ++i){
+        result[i] = 0;
+        for(int j = 0; j < N; ++j)
+            result[i] += matrix[i * N + j] * vector[j]; 
+    }
 }
 
- void scalMulTau(double* A){
-    #pragma omp default(shared) parallel for schedule(static)
+void scalMulTau(double* A){
+    #pragma omp parallel for
     for (int i = 0; i < N; ++i)
         A[i] *= t;
 }
@@ -68,12 +68,12 @@ void generateMatrix(double* matrix) {
     }
 }
 
- void generateVector(double* vector){
+void generateVector(double* vector){
     for(long i = 0; i < N; ++i)
         vector[i] = drand(1,5);
 }
 
- void final_out(bool doesNotCoverege, bool timeOut, double res, int countIt, double end, double start){
+void final_out(bool doesNotCoverege, bool timeOut, double res, int countIt, double end, double start){
     if(doesNotCoverege)
         printf("Please, take another sign for tau\n");
     else if (timeOut)
@@ -84,14 +84,14 @@ void generateMatrix(double* matrix) {
     }
 }
 
- void final_free(double* Ax, double* X, double* b, double* A){
+void final_free(double* Ax, double* X, double* b, double* A){
     free(Ax);
     free(X);
     free(b);
     free(A);
 }
 
- void initBlock(double* A, double* X, double* b){
+void initBlock(double* A, double* X, double* b){
     generateMatrix(A);
     generateVector(X);
     generateVector(b);
