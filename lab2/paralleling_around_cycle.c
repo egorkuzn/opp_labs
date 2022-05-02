@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <omp.h>
 
-const long int N = 4800;
+const long int N = 3600;
 const double e = 1e-5;
 float t = 1e-4;
 const double timeLimit = 600;
@@ -16,7 +16,7 @@ short OMP_NUM_THREADS = 1;
 double EuclideanNorm(const double* vector){
     double norm = 0;
 
-    #pragma omp parallel for reduction(+: norm)
+    #pragma omp parallel for reduction(+: norm) schedule(static, OMP_NUM_THREADS)
     for (int i = 0; i < N; ++i)
         norm += vector[i] * vector[i];
 
@@ -24,14 +24,14 @@ double EuclideanNorm(const double* vector){
 }
 
 void sub(const double* from, const double* what, double* result){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OMP_NUM_THREADS)
     for (int i = 0; i < N; ++i)
         result[i] = from[i] - what[i];   
     
 }
 
 void mul(double* matrix, double* vector, double* result) {
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OMP_NUM_THREADS)
     for(int i = 0; i < N; ++i){
         result[i] = 0;
         for(int j = 0; j < N; ++j)
@@ -40,7 +40,7 @@ void mul(double* matrix, double* vector, double* result) {
 }
 
 void scalMulTau(double* A){
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(static, OMP_NUM_THREADS)
     for (int i = 0; i < N; ++i)
         A[i] *= t;
 }

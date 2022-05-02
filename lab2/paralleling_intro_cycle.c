@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,7 +7,7 @@
 #include <stdbool.h>
 #include <omp.h>
 
-const int N = 4800;
+const int N = 3600;
 const double e = 1e-5;
 float t = 1e-4;
 const double timeLimit = 600.0;
@@ -102,7 +101,7 @@ int main(int argc, char** argv) {
     {
         do {    
             //mul(A, X, Ax); 
-            #pragma omp for private(j)
+            #pragma omp for private(j) schedule(static, OMP_NUM_THREADS)
             for(i = 0; i < N; ++i){
                 Ax[i] = 0;
                 for(j = 0; j < N; ++j)
@@ -117,12 +116,12 @@ int main(int argc, char** argv) {
             normAxb = 0;
             ++countIt;
             iterations_count = countIt;
-            #pragma omp for reduction(+: normAxb)
+            #pragma omp for reduction(+: normAxb) schedule(static, OMP_NUM_THREADS)
             for (i = 0; i < N; ++i)
                 normAxb += Ax[i] * Ax[i];  
             //scalMulTau(Ax); // TAU*(A*xn - b)
             //sub(X, Ax, X); // xn - TAU * (A*xn - b)
-            #pragma omp for
+            #pragma omp for schedule(static, OMP_NUM_THREADS)
             for (i = 0; i < N; ++i)
                 X[i] -= Ax[i] * t;   
 

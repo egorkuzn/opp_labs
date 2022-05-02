@@ -6,7 +6,7 @@
 #include <float.h>
 #include <stdbool.h>
 
-const long int N = 3200;
+const long int N = 4800;
 const double ε = 1e-5;
 float τ = 1e-4;
 const clock_t timeLimit = 600;
