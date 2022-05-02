@@ -2,7 +2,8 @@
 #include <stdlib.h>
 
 void MatrixRead(double* matrix, int lines, int columns, FILE* in){
-    //reading matrix 
+    for(int i = 0; i < lines * columns; ++i)
+        fscanf(in, "%lf", &matrix[i]);
 }
 
 void MatrixMul(double* A, double* B, double* C, int N, int M, int K){
