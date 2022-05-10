@@ -72,7 +72,7 @@ void Matrix_B_Scatter(MPI_Comm* COMM_2D, int* coords, int* root, double* B_part)
         for (int i = 0; i < matrixes.M; ++i) 
             memcpy(&B_part[i * matrixes.K / grid.width], &matrixes.B[i * matrixes.K], matrixes.K / grid.width * sizeof(double));  
 
-    MPI_Type_free(B_TYPE);    
+    MPI_Type_free(&B_TYPE);    
 }
 
 void Matrix_C_Gather(int root, int processRank, double* C_part, MPI_Comm* COMM_2D){
@@ -125,8 +125,8 @@ void final_free(double* A_part, double* B_part, double* C_part, MPI_Comm* COMM_H
 }
 
 void final_printf(double start, double end){
-    printf("N:%d\tcolumns%lf\n\
-            M:%d\tlines%lf\n\
+    printf("N:%d\tcolumns%d\n\
+            M:%d\tlines%d\n\
             K:%d\ttime:%lf\n", matrixes.N, grid.width,
                                matrixes.M, grid.height,
                                matrixes.K, start - end);
