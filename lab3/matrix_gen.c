@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 void GenMatrix(double* matrix, int lines, int columns){
-    srand(NULL);
+    srand(1);
 
     for(int i = 0; i < lines; ++i)
         for(int j = 0; j < columns; ++j)
