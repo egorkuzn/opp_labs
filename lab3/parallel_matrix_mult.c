@@ -10,8 +10,8 @@ const int HORIZONTAL[2] = {0, 1},
 //Grid parameters box:
 struct grid{
     int height,
-        width,
-        array[2];
+        width;
+    int array[2];
 } grid;
 //Matrixes and their sizes:
 struct matrixes{
@@ -26,8 +26,8 @@ struct matrixes{
 void Grid_Init(char* height, char* width){
     grid.height = atoi(height);
     grid.width  = atoi(width);
-    grid.array[1] = grid.height;
-    grid.array[2] = grid.width;
+    grid.array[1] = atoi(height);
+    grid.array[2] = atoi(width);
 }
 
 void MatrixRead(double* matrix, int lines, int columns, FILE* in){
@@ -110,6 +110,12 @@ void MatrixMul(double* A, double* B, double* C, int N, int M, int K){
                 C[i * K + k] += A[i * M + j] * B[j * N + k];
 }
 
+void Comm_free(MPI_Comm* COMM_2D, MPI_Comm* COMM_HORIZONTAL, MPI_Comm* COMM_VERTICAL){
+    MPI_Comm_free(COMM_2D);
+    MPI_Comm_free(COMM_HORIZONTAL);
+    MPI_Comm_free(COMM_VERTICAL);  
+}
+
 void final_free(double* A_part, double* B_part, double* C_part, MPI_Comm* COMM_HORIZONTAL, MPI_Comm* COMM_VERTICAL, MPI_Comm* COMM_2D){
     free(matrixes.A);
     free(matrixes.B);
@@ -119,17 +125,15 @@ void final_free(double* A_part, double* B_part, double* C_part, MPI_Comm* COMM_H
     free(B_part);
     free(C_part);
 
-    MPI_Comm_free(COMM_HORIZONTAL);
-    MPI_Comm_free(COMM_VERTICAL);
-    MPI_Comm_free(COMM_2D);
+    Comm_free(COMM_HORIZONTAL, COMM_VERTICAL, COMM_2D);
 }
 
 void final_printf(double start, double end){
-    printf("N:%d\tcolumns%d\n\
-            M:%d\tlines%d\n\
-            K:%d\ttime:%lf\n", matrixes.N, grid.width,
-                               matrixes.M, grid.height,
-                               matrixes.K, start - end);
+    printf("N:%d\tcolumns:%d\n\
+M:%d\tlines:%d\n\
+K:%d\ttime:%lf\n", matrixes.N, grid.width,
+                   matrixes.M, grid.height,
+                   matrixes.K, end - start);
 }
 
 //    A                 B             C
@@ -155,21 +159,37 @@ int main(int argc, char* argv[]){
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &sizeOfCluster);
     MPI_Comm_rank(MPI_COMM_WORLD, &processRank);
+//Checking inputed init parameters:
+    if(sizeOfCluster != grid.height * grid.width){
+        if(processRank == 0)
+            printf("===\nBad init parameters!!!\n===\n");
+
+        MPI_Finalize();
+        return 0;
+    }
 //                    START
     double start = MPI_Wtime();
 //New communicators creation:
     int periods[2] = {0, 0},
-        coords [2];
+        coords [2],
+        array[2] = {grid.height, grid.width};
+    
     MPI_Comm COMM_2D, COMM_HORIZONTAL, COMM_VERTICAL;
-    MPI_Cart_create(MPI_COMM_WORLD, 2, grid.array, periods, false, &COMM_2D);
+    MPI_Cart_create(MPI_COMM_WORLD, 2, array, periods, false, &COMM_2D);
     MPI_Cart_coords(COMM_2D, processRank, 2, coords);
     MPI_Cart_sub(COMM_2D, HORIZONTAL, &COMM_HORIZONTAL);
     MPI_Cart_sub(COMM_2D, VERTICAL, &COMM_VERTICAL);
 //Opening resource file:
     FILE* in = fopen("matrix.txt", "r");
 //Checking opening of file:    
-    if(!in)
-        perror("File didn't open");
+    if(!in){
+        if(processRank == 0)
+            printf("===\nFile didn't open!!!\n===\n");
+
+        Comm_free(&COMM_2D, &COMM_HORIZONTAL, &COMM_VERTICAL);
+        MPI_Finalize();
+        return 0;
+    }
 //Taking matrixes from resources:    
     Matrixes_Init_NMK(in);    
     matrixes.A = (double*)calloc(matrixes.N * matrixes.M, sizeof(double));
