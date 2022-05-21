@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
             for (i = 0; i < N; ++i)
                 Ax[i] -= b[i]; 
             //normAxb = EuclideanNorm(Ax); // ||A*xn - b||
-            #pragma omp atomic write
+            //#pragma omp atomic write
             normAxb = 0;
             ++countIt;
             iterations_count = countIt;

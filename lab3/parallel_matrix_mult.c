@@ -24,8 +24,8 @@ struct matrixes{
 } matrixes;
 
 void Grid_Init(char* height, char* width){
-    grid.height = atoi(height);
-    grid.width  = atoi(width);
+    grid.height   = atoi(height);
+    grid.width    = atoi(width);
     grid.array[1] = atoi(height);
     grid.array[2] = atoi(width);
 }
@@ -39,6 +39,7 @@ void Matrixes_Init_NMK(FILE* in){
     fscanf(in, "%d %d %d", &matrixes.N,
                            &matrixes.M,
                            &matrixes.K); 
+                           
 }
 
 void Matrixes_Init_AB(FILE* in, int* coords){
