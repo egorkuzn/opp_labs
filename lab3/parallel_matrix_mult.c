@@ -76,7 +76,8 @@ void Matrix_B_Scatter(MPI_Comm* COMM_2D, int* coords, int* root, double* B_part)
     MPI_Type_free(&B_TYPE);    
 }
 
-void Matrix_C_Gather(int root, int processRank, double* C_part, MPI_Comm* COMM_2D){
+void \
+Matrix_C_Gather(int root, int processRank, double* C_part, MPI_Comm* COMM_2D){
     MPI_Datatype C_TYPE;
     MPI_Type_vector(matrixes.N / grid.height, matrixes.K / grid.width, matrixes.K, MPI_DOUBLE, &C_TYPE);
     MPI_Type_commit(&C_TYPE);
@@ -93,7 +94,7 @@ void Matrix_C_Gather(int root, int processRank, double* C_part, MPI_Comm* COMM_2
                 coords_src[0] = i;
                 coords_src[1] = j;
                 MPI_Cart_rank(*COMM_2D, coords_src, &rank_src);
-                MPI_Recv(&matrixes.C[i * matrixes.N / grid.height * matrixes.K + j * matrixes.K / grid.width], 1, C_TYPE, rank_src, rank_src, *COMM_2D, MPI_STATUS_IGNORE);
+                MPI_Recv(&matrixes.C[i * matrixes.N / grid.height * matrixes.K + j * matrixes.K / grid.width], matrixes.N / grid.height * matrixes.K / grid.width, MPI_DOUBLE, rank_src, rank_src, *COMM_2D, MPI_STATUS_IGNORE);
             }
 
     if (processRank == root)
